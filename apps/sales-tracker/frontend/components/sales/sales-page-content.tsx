@@ -1,7 +1,5 @@
-import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { NewSaleSheet } from "./new-sale-sheet";
 import { SalesFilters } from "./sales-filters";
 import { SalesTable } from "./sales-table";
 
@@ -32,7 +30,7 @@ export function SalesPageContent({ sales }: SalesPageContentProps) {
           </p>
         </div>
 
-        <Button>New Sale</Button>
+        <NewSaleSheet />
       </div>
 
       <Card className="rounded-2xl">
@@ -40,21 +38,7 @@ export function SalesPageContent({ sales }: SalesPageContentProps) {
           <CardTitle>Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <Suspense
-            fallback={
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <Skeleton className="h-9 w-full" />
-                <Skeleton className="h-9 w-full" />
-                <Skeleton className="h-9 w-full" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-9 flex-1" />
-                  <Skeleton className="h-9 w-20 shrink-0" />
-                </div>
-              </div>
-            }
-          >
-            <SalesFilters />
-          </Suspense>
+          <SalesFilters />
         </CardContent>
       </Card>
 
