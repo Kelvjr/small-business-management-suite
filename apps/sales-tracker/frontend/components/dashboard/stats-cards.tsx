@@ -1,13 +1,43 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/format";
 
-const stats = [
-  { title: "Total Revenue", value: "₵0.00" },
-  { title: "Sales Today", value: "₵0.00" },
-  { title: "This Week", value: "₵0.00" },
-  { title: "This Month", value: "₵0.00" },
-];
+type StatsCardsProps = {
+  summary: {
+    totalRevenue: number;
+    salesToday: number;
+    salesThisWeek: number;
+    salesThisMonth: number;
+    totalSalesCount: number;
+    todaySalesCount: number;
+    weekSalesCount: number;
+    monthSalesCount: number;
+  };
+};
 
-export function StatsCards() {
+export function StatsCards({ summary }: StatsCardsProps) {
+  const stats = [
+    {
+      title: "Total Revenue",
+      value: formatCurrency(summary.totalRevenue),
+      subtext: `${summary.totalSalesCount} sales`,
+    },
+    {
+      title: "Sales Today",
+      value: formatCurrency(summary.salesToday),
+      subtext: `${summary.todaySalesCount} sales`,
+    },
+    {
+      title: "This Week",
+      value: formatCurrency(summary.salesThisWeek),
+      subtext: `${summary.weekSalesCount} sales`,
+    },
+    {
+      title: "This Month",
+      value: formatCurrency(summary.salesThisMonth),
+      subtext: `${summary.monthSalesCount} sales`,
+    },
+  ];
+
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => (
@@ -21,6 +51,7 @@ export function StatsCards() {
             <p className="text-2xl font-semibold tracking-tight">
               {stat.value}
             </p>
+            <p className="mt-1 text-xs text-muted-foreground">{stat.subtext}</p>
           </CardContent>
         </Card>
       ))}

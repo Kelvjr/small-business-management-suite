@@ -1,9 +1,16 @@
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { RecentSales } from "@/components/dashboard/recent-sales";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { fetchSales, fetchSalesSummary } from "@/lib/api";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [summary, sales] = await Promise.all([
+    fetchSalesSummary(),
+    fetchSales(),
+  ]);
+
   return (
     <main className="min-h-screen bg-muted/30">
       <div className="flex min-h-screen">
@@ -13,7 +20,7 @@ export default function HomePage() {
           <Topbar />
 
           <div className="flex-1 space-y-6 p-4 lg:p-6">
-            <StatsCards />
+            <StatsCards summary={summary} />
 
             <div className="grid gap-6 xl:grid-cols-3">
               <Card className="rounded-2xl xl:col-span-2">
@@ -21,9 +28,7 @@ export default function HomePage() {
                   <CardTitle>Recent Sales</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="rounded-xl border border-dashed p-8 text-sm text-muted-foreground">
-                    Sales table will go here.
-                  </div>
+                  <RecentSales sales={sales} />
                 </CardContent>
               </Card>
 
