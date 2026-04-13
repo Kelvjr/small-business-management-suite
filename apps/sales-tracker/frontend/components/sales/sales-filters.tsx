@@ -4,6 +4,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function SalesFilters() {
   const router = useRouter();
@@ -12,7 +19,7 @@ export function SalesFilters() {
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [category, setCategory] = useState(searchParams.get("category") || "");
   const [paymentStatus, setPaymentStatus] = useState(
-    searchParams.get("paymentStatus") || "",
+    searchParams.get("paymentStatus") || "all",
   );
 
   function handleSubmit(e: FormEvent) {
@@ -20,9 +27,9 @@ export function SalesFilters() {
 
     const params = new URLSearchParams();
 
-    if (search) params.set("search", search);
-    if (category) params.set("category", category);
-    if (paymentStatus) params.set("paymentStatus", paymentStatus);
+    if (search.trim()) params.set("search", search.trim());
+    if (category.trim()) params.set("category", category.trim());
+    if (paymentStatus !== "all") params.set("paymentStatus", paymentStatus);
 
     router.push(`/sales${params.toString() ? `?${params.toString()}` : ""}`);
   }
@@ -30,7 +37,7 @@ export function SalesFilters() {
   function handleReset() {
     setSearch("");
     setCategory("");
-    setPaymentStatus("");
+    setPaymentStatus("all");
     router.push("/sales");
   }
 
@@ -51,11 +58,17 @@ export function SalesFilters() {
         onChange={(e) => setCategory(e.target.value)}
       />
 
-      <Input
-        placeholder="Payment status: paid / partial / unpaid"
-        value={paymentStatus}
-        onChange={(e) => setPaymentStatus(e.target.value)}
-      />
+      <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+        <SelectTrigger>
+          <SelectValue placeholder="Payment status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="paid">Paid</SelectItem>
+          <SelectItem value="partial">Partial</SelectItem>
+          <SelectItem value="unpaid">Unpaid</SelectItem>
+        </SelectContent>
+      </Select>
 
       <div className="flex gap-2">
         <Button type="submit" className="flex-1">

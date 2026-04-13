@@ -15,6 +15,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type EditSaleSheetProps = {
   sale: Sale;
@@ -138,33 +145,39 @@ export function EditSaleSheet({ sale }: EditSaleSheetProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Item Type</label>
-              <select
+              <Select
                 value={itemType}
-                onChange={(e) =>
-                  setItemType(e.target.value as "product" | "service")
+                onValueChange={(value) =>
+                  setItemType(value as "product" | "service")
                 }
-                className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
               >
-                <option value="product">Product</option>
-                <option value="service">Service</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select item type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="product">Product</SelectItem>
+                  <SelectItem value="service">Service</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Payment Status</label>
-              <select
+              <Select
                 value={paymentStatus}
-                onChange={(e) =>
-                  setPaymentStatus(
-                    e.target.value as "paid" | "partial" | "unpaid",
-                  )
+                onValueChange={(value) =>
+                  setPaymentStatus(value as "paid" | "partial" | "unpaid")
                 }
-                className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
               >
-                <option value="paid">Paid</option>
-                <option value="partial">Partial</option>
-                <option value="unpaid">Unpaid</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -225,11 +238,11 @@ export function EditSaleSheet({ sale }: EditSaleSheetProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Sales Channel</label>
-              <select
+              <Select
                 value={salesChannel}
-                onChange={(e) =>
+                onValueChange={(value) =>
                   setSalesChannel(
-                    e.target.value as
+                    value as
                       | "walk-in"
                       | "whatsapp"
                       | "instagram"
@@ -237,14 +250,18 @@ export function EditSaleSheet({ sale }: EditSaleSheetProps) {
                       | "website",
                   )
                 }
-                className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm"
               >
-                <option value="walk-in">Walk-in</option>
-                <option value="whatsapp">WhatsApp</option>
-                <option value="instagram">Instagram</option>
-                <option value="phone">Phone</option>
-                <option value="website">Website</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select sales channel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="walk-in">Walk-in</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="phone">Phone</SelectItem>
+                  <SelectItem value="website">Website</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

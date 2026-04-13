@@ -1,5 +1,6 @@
 import { formatCurrency, formatSaleDate } from "@/lib/format";
 import type { Sale } from "@/lib/types/sale";
+import { PaymentStatusBadge } from "@/components/sales/payment-status-badge";
 
 type RecentSalesProps = {
   sales: Sale[];
@@ -38,7 +39,9 @@ export function RecentSales({ sales }: RecentSalesProps) {
               </td>
               <td className="px-3 py-3 capitalize">{sale.itemType}</td>
               <td className="px-3 py-3">{sale.customerName || "Walk-in"}</td>
-              <td className="px-3 py-3 capitalize">{sale.paymentStatus}</td>
+              <td className="px-3 py-3">
+                <PaymentStatusBadge status={sale.paymentStatus} />
+              </td>
               <td className="px-3 py-3 font-medium">
                 {formatCurrency(Number(sale.totalAmount))}
               </td>
