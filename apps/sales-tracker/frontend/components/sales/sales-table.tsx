@@ -1,16 +1,6 @@
-import { formatCurrency } from "@/lib/format";
-
-type Sale = {
-  id: string;
-  itemName: string;
-  itemType: string;
-  category?: string | null;
-  subcategory?: string | null;
-  customerName?: string | null;
-  totalAmount: number | string;
-  paymentStatus: string;
-  soldAt: string;
-};
+import { formatCurrency, formatSaleDate } from "@/lib/format";
+import type { Sale } from "@/lib/types/sale";
+import { SaleRowActions } from "./sale-row-actions";
 
 type SalesTableProps = {
   sales: Sale[];
@@ -37,6 +27,7 @@ export function SalesTable({ sales }: SalesTableProps) {
             <th className="px-3 py-3 font-medium">Status</th>
             <th className="px-3 py-3 font-medium">Amount</th>
             <th className="px-3 py-3 font-medium">Date</th>
+            <th className="px-3 py-3 font-medium text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -50,8 +41,9 @@ export function SalesTable({ sales }: SalesTableProps) {
               <td className="px-3 py-3 font-medium">
                 {formatCurrency(Number(sale.totalAmount))}
               </td>
-              <td className="px-3 py-3">
-                {new Date(sale.soldAt).toLocaleDateString()}
+              <td className="px-3 py-3">{formatSaleDate(sale.soldAt)}</td>
+              <td className="px-3 py-3 text-right">
+                <SaleRowActions sale={sale} />
               </td>
             </tr>
           ))}

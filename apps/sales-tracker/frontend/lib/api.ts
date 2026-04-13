@@ -1,3 +1,5 @@
+import type { Sale } from "./types/sale";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_URL) {
@@ -25,6 +27,8 @@ export type CreateSalePayload = {
   soldAt?: string;
 };
 
+export type UpdateSalePayload = Partial<CreateSalePayload>;
+
 export async function fetchSalesSummary() {
   const res = await fetch(`${API_URL}/sales/summary`, {
     cache: "no-store",
@@ -37,7 +41,9 @@ export async function fetchSalesSummary() {
   return res.json();
 }
 
-export async function fetchSales(params?: FetchSalesParams) {
+export async function fetchSales(
+  params?: FetchSalesParams,
+): Promise<Sale[]> {
   const query = new URLSearchParams();
 
   if (params?.category) query.set("category", params.category);
@@ -54,7 +60,7 @@ export async function fetchSales(params?: FetchSalesParams) {
     throw new Error("Failed to fetch sales");
   }
 
-  return res.json();
+  return (await res.json()) as Sale[];
 }
 
 export async function createSale(payload: CreateSalePayload) {
@@ -68,6 +74,48 @@ export async function createSale(payload: CreateSalePayload) {
 
   if (!res.ok) {
     let message = "Failed to create sale";
+
+    try {
+      const errorData = await res.json();
+      message = errorData?.error || message;
+    } catch {}
+
+    throw new Error(message);
+  }
+
+  return res.json();
+}
+
+export async function updateSale(id: string, payload: UpdateSalePayload) {
+  const res = await fetch(`${API_URL}/sales/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let message = "Failed to update sale";
+
+    try {
+      const errorData = await res.json();
+      message = errorData?.error || message;
+    } catch {}
+
+    throw new Error(message);
+  }
+
+  return res.json();
+}
+
+export async function deleteSale(id: string) {
+  const res = await fetch(`${API_URL}/sales/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    let message = "Failed to delete sale";
 
     try {
       const errorData = await res.json();

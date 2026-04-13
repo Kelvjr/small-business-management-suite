@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createSale } from "@/lib/api";
+import { updateSale } from "@/lib/api";
+import type { Sale } from "@/lib/types/sale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,25 +15,49 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-export function NewSaleSheet() {
+type EditSaleSheetProps = {
+  sale: Sale;
+};
+
+function toDatetimeLocal(value: string) {
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+}
+
+export function EditSaleSheet({ sale }: EditSaleSheetProps) {
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
-  const [itemType, setItemType] = useState<"product" | "service">("product");
-  const [itemName, setItemName] = useState("");
-  const [category, setCategory] = useState("");
-  const [subcategory, setSubcategory] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [unitPrice, setUnitPrice] = useState("");
+  const [itemType, setItemType] = useState<"product" | "service">(
+    sale.itemType,
+  );
+  const [itemName, setItemName] = useState(sale.itemName);
+  const [category, setCategory] = useState(sale.category || "");
+  const [subcategory, setSubcategory] = useState(sale.subcategory || "");
+  const [quantity, setQuantity] = useState(String(sale.quantity ?? 1));
+  const [unitPrice, setUnitPrice] = useState(
+    String(
+      sale.unitPrice ?? Number(sale.totalAmount) / Number(sale.quantity ?? 1),
+    ),
+  );
   const [paymentStatus, setPaymentStatus] = useState<
     "paid" | "partial" | "unpaid"
-  >("paid");
+  >(sale.paymentStatus);
   const [salesChannel, setSalesChannel] = useState<
     "walk-in" | "whatsapp" | "instagram" | "phone" | "website"
-  >("walk-in");
-  const [customerName, setCustomerName] = useState("");
-  const [notes, setNotes] = useState("");
-  const [soldAt, setSoldAt] = useState("");
+  >(
+    (sale.salesChannel as
+      | "walk-in"
+      | "whatsapp"
+      | "instagram"
+      | "phone"
+      | "website") || "walk-in",
+  );
+  const [customerName, setCustomerName] = useState(sale.customerName || "");
+  const [notes, setNotes] = useState(sale.notes || "");
+  const [soldAt, setSoldAt] = useState(toDatetimeLocal(sale.soldAt));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -41,21 +66,6 @@ export function NewSaleSheet() {
     const price = Number(unitPrice || 0);
     return qty * price;
   }, [quantity, unitPrice]);
-
-  function resetForm() {
-    setItemType("product");
-    setItemName("");
-    setCategory("");
-    setSubcategory("");
-    setQuantity("1");
-    setUnitPrice("");
-    setPaymentStatus("paid");
-    setSalesChannel("walk-in");
-    setCustomerName("");
-    setNotes("");
-    setSoldAt("");
-    setError("");
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -79,7 +89,11 @@ export function NewSaleSheet() {
     try {
       setSubmitting(true);
 
-      await createSale({
+      const normalizedSoldAt = soldAt
+        ? new Date(soldAt).toISOString()
+        : undefined;
+
+      await updateSale(sale.id, {
         itemType,
         itemName: itemName.trim(),
         category: category.trim() || undefined,
@@ -91,11 +105,10 @@ export function NewSaleSheet() {
         salesChannel,
         customerName: customerName.trim() || undefined,
         notes: notes.trim() || undefined,
-        soldAt: soldAt ? new Date(soldAt).toISOString() : undefined,
+        soldAt: normalizedSoldAt,
       });
 
       setOpen(false);
-      resetForm();
       router.refresh();
     } catch (err) {
       const message =
@@ -109,15 +122,13 @@ export function NewSaleSheet() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button>New Sale</Button>
+        <button className="w-full text-left text-sm">Edit</button>
       </SheetTrigger>
 
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle>New Sale</SheetTitle>
-          <SheetDescription>
-            Add a new product or service sale.
-          </SheetDescription>
+          <SheetTitle>Edit Sale</SheetTitle>
+          <SheetDescription>Update this sales record.</SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
@@ -159,7 +170,6 @@ export function NewSaleSheet() {
             <Input
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
-              placeholder="e.g. Chocolate Cake"
             />
           </div>
 
@@ -169,7 +179,6 @@ export function NewSaleSheet() {
               <Input
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g. Bakery"
               />
             </div>
 
@@ -178,7 +187,6 @@ export function NewSaleSheet() {
               <Input
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
-                placeholder="e.g. Cakes"
               />
             </div>
           </div>
@@ -202,7 +210,6 @@ export function NewSaleSheet() {
                 step="0.01"
                 value={unitPrice}
                 onChange={(e) => setUnitPrice(e.target.value)}
-                placeholder="0.00"
               />
             </div>
           </div>
@@ -242,7 +249,6 @@ export function NewSaleSheet() {
               <Input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Optional"
               />
             </div>
           </div>
@@ -261,7 +267,6 @@ export function NewSaleSheet() {
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional notes"
               className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
             />
           </div>
@@ -274,7 +279,7 @@ export function NewSaleSheet() {
 
           <div className="flex gap-3 pt-2">
             <Button type="submit" disabled={submitting} className="flex-1">
-              {submitting ? "Saving..." : "Save Sale"}
+              {submitting ? "Saving..." : "Save Changes"}
             </Button>
             <Button
               type="button"
