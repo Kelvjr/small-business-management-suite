@@ -1,19 +1,5 @@
 import { prisma } from "../lib/prisma";
-
-type CreateSaleInput = {
-  itemType: string;
-  itemName: string;
-  category?: string;
-  subcategory?: string;
-  quantity?: number;
-  unitPrice: number;
-  totalAmount: number;
-  paymentStatus?: string;
-  salesChannel?: string;
-  customerName?: string;
-  notes?: string;
-  soldAt?: string;
-};
+import { CreateSaleSchemaType } from "../validators/sales.validator";
 
 export async function getAllSales() {
   return prisma.sale.findMany({
@@ -23,7 +9,7 @@ export async function getAllSales() {
   });
 }
 
-export async function createSale(data: CreateSaleInput) {
+export async function createSale(data: CreateSaleSchemaType) {
   return prisma.sale.create({
     data: {
       itemType: data.itemType,

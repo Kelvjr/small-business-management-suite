@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { createSale, getAllSales } from "../services/sales.service";
+import { createSaleSchema } from "../validators/sales.validator";
 
 export async function fetchSales(_req: Request, res: Response) {
   try {
@@ -13,41 +14,16 @@ export async function fetchSales(_req: Request, res: Response) {
 
 export async function addSale(req: Request, res: Response) {
   try {
-    const {
-      itemType,
-      itemName,
-      category,
-      subcategory,
-      quantity,
-      unitPrice,
-      totalAmount,
-      paymentStatus,
-      salesChannel,
-      customerName,
-      notes,
-      soldAt,
-    } = req.body;
+    const parsed = createSaleSchema.safeParse(req.body);
 
-    if (!itemType || !itemName || unitPrice == null || totalAmount == null) {
+    if (!parsed.success) {
       return res.status(400).json({
-        error: "itemType, itemName, unitPrice, and totalAmount are required",
+        error: "Validation failed",
+        details: parsed.error.flatten(),
       });
     }
 
-    const sale = await createSale({
-      itemType,
-      itemName,
-      category,
-      subcategory,
-      quantity,
-      unitPrice: Number(unitPrice),
-      totalAmount: Number(totalAmount),
-      paymentStatus,
-      salesChannel,
-      customerName,
-      notes,
-      soldAt,
-    });
+    const sale = await createSale(parsed.data);
 
     res.status(201).json(sale);
   } catch (error) {
