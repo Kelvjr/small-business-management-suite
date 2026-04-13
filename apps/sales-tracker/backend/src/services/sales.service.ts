@@ -1,5 +1,8 @@
 import { prisma } from "../lib/prisma";
-import { CreateSaleSchemaType } from "../validators/sales.validator";
+import {
+  CreateSaleSchemaType,
+  UpdateSaleSchemaType,
+} from "../validators/sales.validator";
 
 export async function getAllSales() {
   return prisma.sale.findMany({
@@ -25,5 +28,39 @@ export async function createSale(data: CreateSaleSchemaType) {
       notes: data.notes,
       soldAt: data.soldAt ? new Date(data.soldAt) : new Date(),
     },
+  });
+}
+
+export async function updateSale(id: string, data: UpdateSaleSchemaType) {
+  return prisma.sale.update({
+    where: { id },
+    data: {
+      ...(data.itemType !== undefined && { itemType: data.itemType }),
+      ...(data.itemName !== undefined && { itemName: data.itemName }),
+      ...(data.category !== undefined && { category: data.category }),
+      ...(data.subcategory !== undefined && { subcategory: data.subcategory }),
+      ...(data.quantity !== undefined && { quantity: data.quantity }),
+      ...(data.unitPrice !== undefined && { unitPrice: data.unitPrice }),
+      ...(data.totalAmount !== undefined && { totalAmount: data.totalAmount }),
+      ...(data.paymentStatus !== undefined && {
+        paymentStatus: data.paymentStatus,
+      }),
+      ...(data.salesChannel !== undefined && {
+        salesChannel: data.salesChannel,
+      }),
+      ...(data.customerName !== undefined && {
+        customerName: data.customerName,
+      }),
+      ...(data.notes !== undefined && { notes: data.notes }),
+      ...(data.soldAt !== undefined && {
+        soldAt: data.soldAt ? new Date(data.soldAt) : undefined,
+      }),
+    },
+  });
+}
+
+export async function deleteSale(id: string) {
+  return prisma.sale.delete({
+    where: { id },
   });
 }

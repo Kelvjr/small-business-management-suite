@@ -17,4 +17,7 @@ export const createSaleSchema = z.object({
   soldAt: z.string().datetime().optional(),
 });
 
+export const updateSaleSchema = createSaleSchema.partial();
+
 export type CreateSaleSchemaType = z.infer<typeof createSaleSchema>;
+export type UpdateSaleSchemaType = z.infer<typeof updateSaleSchema>;
