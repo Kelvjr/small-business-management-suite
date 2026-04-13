@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { updateSale } from "@/lib/api";
 import type { Sale } from "@/lib/types/sale";
 import { Button } from "@/components/ui/button";
@@ -108,12 +109,14 @@ export function EditSaleSheet({ sale }: EditSaleSheetProps) {
         soldAt: normalizedSoldAt,
       });
 
+      toast.success("Sale updated successfully.");
       setOpen(false);
       router.refresh();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Something went wrong";
       setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

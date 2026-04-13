@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createSale } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,6 +95,7 @@ export function NewSaleSheet() {
         soldAt: soldAt ? new Date(soldAt).toISOString() : undefined,
       });
 
+      toast.success("Sale created successfully.");
       setOpen(false);
       resetForm();
       router.refresh();
@@ -101,6 +103,7 @@ export function NewSaleSheet() {
       const message =
         err instanceof Error ? err.message : "Something went wrong";
       setError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

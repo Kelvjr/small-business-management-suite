@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { deleteSale } from "@/lib/api";
 
 type DeleteSaleButtonProps = {
@@ -22,9 +23,12 @@ export function DeleteSaleButton({ id }: DeleteSaleButtonProps) {
     try {
       setDeleting(true);
       await deleteSale(id);
+      toast.success("Sale deleted successfully.");
       router.refresh();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to delete sale");
+      const message =
+        error instanceof Error ? error.message : "Failed to delete sale";
+      toast.error(message);
     } finally {
       setDeleting(false);
     }
