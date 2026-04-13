@@ -4,8 +4,87 @@ import {
   UpdateSaleSchemaType,
 } from "../validators/sales.validator";
 
-export async function getAllSales() {
+type GetSalesFilters = {
+  itemType?: string;
+  category?: string;
+  paymentStatus?: string;
+  customerName?: string;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+export async function getAllSales(filters?: GetSalesFilters) {
+  const where: any = {};
+
+  if (filters?.itemType) {
+    where.itemType = filters.itemType;
+  }
+
+  if (filters?.category) {
+    where.category = filters.category;
+  }
+
+  if (filters?.paymentStatus) {
+    where.paymentStatus = filters.paymentStatus;
+  }
+
+  if (filters?.customerName) {
+    where.customerName = {
+      contains: filters.customerName,
+      mode: "insensitive",
+    };
+  }
+
+  if (filters?.search) {
+    where.OR = [
+      {
+        itemName: {
+          contains: filters.search,
+          mode: "insensitive",
+        },
+      },
+      {
+        category: {
+          contains: filters.search,
+          mode: "insensitive",
+        },
+      },
+      {
+        subcategory: {
+          contains: filters.search,
+          mode: "insensitive",
+        },
+      },
+      {
+        customerName: {
+          contains: filters.search,
+          mode: "insensitive",
+        },
+      },
+      {
+        notes: {
+          contains: filters.search,
+          mode: "insensitive",
+        },
+      },
+    ];
+  }
+
+  if (filters?.startDate || filters?.endDate) {
+    where.soldAt = {};
+
+    if (filters.startDate) {
+      where.soldAt.gte = new Date(filters.startDate);
+    }
+
+    if (filters.endDate) {
+      where.soldAt.lte = new Date(filters.endDate);
+    }
+  }
+
   return prisma.sale.findMany({
+    where,
     orderBy: {
       soldAt: "desc",
     },
@@ -63,4 +142,63 @@ export async function deleteSale(id: string) {
   return prisma.sale.delete({
     where: { id },
   });
+}
+
+export async function getSalesSummary() {
+  const now = new Date();
+
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const startOfWeek = new Date(now);
+  const day = startOfWeek.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  startOfWeek.setDate(startOfWeek.getDate() - diff);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [allSales, todaySales, weekSales, monthSales] = await Promise.all([
+    prisma.sale.findMany({
+      select: { totalAmount: true },
+    }),
+    prisma.sale.findMany({
+      where: {
+        soldAt: {
+          gte: startOfToday,
+        },
+      },
+      select: { totalAmount: true },
+    }),
+    prisma.sale.findMany({
+      where: {
+        soldAt: {
+          gte: startOfWeek,
+        },
+      },
+      select: { totalAmount: true },
+    }),
+    prisma.sale.findMany({
+      where: {
+        soldAt: {
+          gte: startOfMonth,
+        },
+      },
+      select: { totalAmount: true },
+    }),
+  ]);
+
+  const sumAmounts = (sales: { totalAmount: any }[]) =>
+    sales.reduce((sum, sale) => sum + Number(sale.totalAmount), 0);
+
+  return {
+    totalRevenue: sumAmounts(allSales),
+    salesToday: sumAmounts(todaySales),
+    salesThisWeek: sumAmounts(weekSales),
+    salesThisMonth: sumAmounts(monthSales),
+    totalSalesCount: allSales.length,
+    todaySalesCount: todaySales.length,
+    weekSalesCount: weekSales.length,
+    monthSalesCount: monthSales.length,
+  };
 }

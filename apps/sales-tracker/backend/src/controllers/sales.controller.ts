@@ -3,6 +3,7 @@ import {
   createSale,
   deleteSale,
   getAllSales,
+  getSalesSummary,
   updateSale,
 } from "../services/sales.service";
 import {
@@ -14,13 +15,43 @@ type SaleParams = {
   id: string;
 };
 
-export async function fetchSales(_req: Request, res: Response) {
+export async function fetchSales(req: Request, res: Response) {
   try {
-    const sales = await getAllSales();
+    const {
+      itemType,
+      category,
+      paymentStatus,
+      customerName,
+      search,
+      startDate,
+      endDate,
+    } = req.query;
+
+    const sales = await getAllSales({
+      itemType: typeof itemType === "string" ? itemType : undefined,
+      category: typeof category === "string" ? category : undefined,
+      paymentStatus:
+        typeof paymentStatus === "string" ? paymentStatus : undefined,
+      customerName: typeof customerName === "string" ? customerName : undefined,
+      search: typeof search === "string" ? search : undefined,
+      startDate: typeof startDate === "string" ? startDate : undefined,
+      endDate: typeof endDate === "string" ? endDate : undefined,
+    });
+
     res.json(sales);
   } catch (error) {
     console.error("Error fetching sales:", error);
     res.status(500).json({ error: "Failed to fetch sales" });
+  }
+}
+
+export async function fetchSalesSummary(_req: Request, res: Response) {
+  try {
+    const summary = await getSalesSummary();
+    res.json(summary);
+  } catch (error) {
+    console.error("Error fetching sales summary:", error);
+    res.status(500).json({ error: "Failed to fetch sales summary" });
   }
 }
 
