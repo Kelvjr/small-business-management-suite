@@ -1,7 +1,7 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
-import type { Sale } from "@/lib/types/sale";
+import type { Sale } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

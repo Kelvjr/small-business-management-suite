@@ -1,5 +1,5 @@
 import { formatCurrency, formatSaleDate } from "@/lib/format";
-import type { Sale } from "@/lib/types/sale";
+import type { Sale } from "@/lib/api";
 import { PaymentStatusBadge } from "./payment-status-badge";
 import { SaleRowActions } from "./sale-row-actions";
 

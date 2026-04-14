@@ -75,11 +75,11 @@ export async function getAllSales(filters?: GetSalesFilters) {
     where.soldAt = {};
 
     if (filters.startDate) {
-      where.soldAt.gte = new Date(filters.startDate);
+      where.soldAt.gte = new Date(`${filters.startDate}T00:00:00.000Z`);
     }
 
     if (filters.endDate) {
-      where.soldAt.lte = new Date(filters.endDate);
+      where.soldAt.lte = new Date(`${filters.endDate}T23:59:59.999Z`);
     }
   }
 
@@ -88,6 +88,12 @@ export async function getAllSales(filters?: GetSalesFilters) {
     orderBy: {
       soldAt: "desc",
     },
+  });
+}
+
+export async function getSaleById(id: string) {
+  return prisma.sale.findUnique({
+    where: { id },
   });
 }
 

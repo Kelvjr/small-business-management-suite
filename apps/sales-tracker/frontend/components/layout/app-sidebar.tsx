@@ -17,13 +17,13 @@ export function AppSidebar() {
     >
       <div
         className={[
-          "flex h-16 items-center border-b px-4",
+          "flex h-16 items-center border-b bg-gradient-to-r from-primary/10 to-accent/10 px-4",
           collapsed ? "justify-center" : "justify-between",
         ].join(" ")}
       >
         {!collapsed && (
           <div>
-            <p className="text-lg font-semibold">Sales Tracker</p>
+            <p className="text-lg font-semibold text-primary">Sales Tracker</p>
             <p className="text-xs text-muted-foreground">Smallbiz Suite</p>
           </div>
         )}

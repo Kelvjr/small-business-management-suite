@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { updateSale } from "@/lib/api";
-import type { Sale } from "@/lib/types/sale";
+import { updateSale, type Sale } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

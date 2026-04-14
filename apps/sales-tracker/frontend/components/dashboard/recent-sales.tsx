@@ -1,5 +1,7 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { formatCurrency, formatSaleDate } from "@/lib/format";
-import type { Sale } from "@/lib/types/sale";
+import type { Sale } from "@/lib/api";
 import { PaymentStatusBadge } from "@/components/sales/payment-status-badge";
 
 type RecentSalesProps = {
@@ -26,6 +28,7 @@ export function RecentSales({ sales }: RecentSalesProps) {
             <th className="px-3 py-3 font-medium">Status</th>
             <th className="px-3 py-3 font-medium">Amount</th>
             <th className="px-3 py-3 font-medium">Date</th>
+            <th className="px-3 py-3 font-medium text-right">View</th>
           </tr>
         </thead>
         <tbody>
@@ -46,6 +49,11 @@ export function RecentSales({ sales }: RecentSalesProps) {
                 {formatCurrency(Number(sale.totalAmount))}
               </td>
               <td className="px-3 py-3">{formatSaleDate(sale.soldAt)}</td>
+              <td className="px-3 py-3 text-right">
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/sales/${sale.id}`}>View</Link>
+                </Button>
+              </td>
             </tr>
           ))}
         </tbody>

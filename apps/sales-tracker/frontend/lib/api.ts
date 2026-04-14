@@ -1,5 +1,3 @@
-import type { Sale } from "./types/sale";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_URL) {
@@ -10,6 +8,30 @@ type FetchSalesParams = {
   category?: string;
   paymentStatus?: string;
   search?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+export type Sale = {
+  id: string;
+  itemType: "product" | "service";
+  itemName: string;
+  category?: string | null;
+  subcategory?: string | null;
+  quantity?: number | null;
+  unitPrice?: number | string | null;
+  totalAmount: number | string;
+  paymentStatus: "paid" | "partial" | "unpaid";
+  salesChannel?:
+    | "walk-in"
+    | "whatsapp"
+    | "instagram"
+    | "phone"
+    | "website"
+    | null;
+  customerName?: string | null;
+  notes?: string | null;
+  soldAt: string;
 };
 
 export type CreateSalePayload = {
@@ -41,14 +63,14 @@ export async function fetchSalesSummary() {
   return res.json();
 }
 
-export async function fetchSales(
-  params?: FetchSalesParams,
-): Promise<Sale[]> {
+export async function fetchSales(params?: FetchSalesParams): Promise<Sale[]> {
   const query = new URLSearchParams();
 
   if (params?.category) query.set("category", params.category);
   if (params?.paymentStatus) query.set("paymentStatus", params.paymentStatus);
   if (params?.search) query.set("search", params.search);
+  if (params?.startDate) query.set("startDate", params.startDate);
+  if (params?.endDate) query.set("endDate", params.endDate);
 
   const url = `${API_URL}/sales${query.toString() ? `?${query.toString()}` : ""}`;
 
@@ -60,7 +82,23 @@ export async function fetchSales(
     throw new Error("Failed to fetch sales");
   }
 
-  return (await res.json()) as Sale[];
+  return res.json();
+}
+
+export async function fetchSaleById(id: string): Promise<Sale | null> {
+  const res = await fetch(`${API_URL}/sales/${id}`, {
+    cache: "no-store",
+  });
+
+  if (res.status === 404) {
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch sale");
+  }
+
+  return res.json();
 }
 
 export async function createSale(payload: CreateSalePayload) {

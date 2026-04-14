@@ -1,9 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { createSale } from "@/lib/api";
+import { createSale, fetchSales, type Sale } from "@/lib/api";
+import { formatCurrency } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,9 +28,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  findLastPrice,
+  getNowDatetimeLocalValue,
+  readFrequentItems,
+  type FrequentItem,
+  upsertFrequentItem,
+} from "@/lib/sales-automation";
 
-export function NewSaleSheet() {
+type NewSaleSheetProps = {
+  trigger?: ReactNode;
+  /** When true, no trigger is rendered (for global URL-driven open from AppShell). */
+  hideTrigger?: boolean;
+};
+
+type SaleChannel = "walk-in" | "whatsapp" | "instagram" | "phone" | "website";
+type PaymentStatus = "paid" | "partial" | "unpaid";
+
+type Suggestion = {
+  source: "memory" | "history";
+  itemType: "product" | "service";
+  itemName: string;
+  category?: string;
+  subcategory?: string;
+  unitPrice: number;
+  paymentStatus: PaymentStatus;
+  salesChannel: SaleChannel;
+  customerName?: string;
+  notes?: string;
+};
+
+function normalizeText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function NewSaleSheetInner({ trigger, hideTrigger }: NewSaleSheetProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [open, setOpen] = useState(false);
   const [itemType, setItemType] = useState<"product" | "service">("product");
@@ -32,23 +74,134 @@ export function NewSaleSheet() {
   const [subcategory, setSubcategory] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [unitPrice, setUnitPrice] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState<
-    "paid" | "partial" | "unpaid"
-  >("paid");
-  const [salesChannel, setSalesChannel] = useState<
-    "walk-in" | "whatsapp" | "instagram" | "phone" | "website"
-  >("walk-in");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("paid");
+  const [salesChannel, setSalesChannel] = useState<SaleChannel>("walk-in");
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes] = useState("");
-  const [soldAt, setSoldAt] = useState("");
+  const [soldAt, setSoldAt] = useState(getNowDatetimeLocalValue());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
+  const [frequentItems, setFrequentItems] = useState<FrequentItem[]>([]);
+  const [priceManuallyEdited, setPriceManuallyEdited] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("sale") === "new") {
+      setOpen(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setFrequentItems(readFrequentItems());
+
+    let active = true;
+
+    fetchSales()
+      .then((sales) => {
+        if (active) {
+          setSalesHistory(sales);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSalesHistory([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open]);
 
   const totalAmount = useMemo(() => {
     const qty = Number(quantity || 0);
     const price = Number(unitPrice || 0);
     return qty * price;
   }, [quantity, unitPrice]);
+
+  const suggestions = useMemo<Suggestion[]>(() => {
+    const query = normalizeText(itemName);
+    if (!query) return [];
+
+    const fromMemory = frequentItems
+      .filter((item) => normalizeText(item.itemName).includes(query))
+      .map((item) => ({
+        source: "memory" as const,
+        itemType: item.itemType,
+        itemName: item.itemName,
+        category: item.category,
+        subcategory: item.subcategory,
+        unitPrice: item.unitPrice,
+        paymentStatus: item.paymentStatus,
+        salesChannel: item.salesChannel,
+        customerName: item.customerName,
+        notes: item.notes,
+      }));
+
+    const latestByName = new Map<string, Sale>();
+    for (const sale of [...salesHistory].sort(
+      (a, b) => new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime(),
+    )) {
+      const key = normalizeText(sale.itemName);
+      if (!key || latestByName.has(key)) continue;
+      latestByName.set(key, sale);
+    }
+
+    const fromHistory = Array.from(latestByName.values())
+      .filter((sale) => normalizeText(sale.itemName).includes(query))
+      .map((sale) => ({
+        source: "history" as const,
+        itemType: sale.itemType,
+        itemName: sale.itemName,
+        category: sale.category ?? undefined,
+        subcategory: sale.subcategory ?? undefined,
+        unitPrice: Number(sale.unitPrice ?? sale.totalAmount),
+        paymentStatus: sale.paymentStatus as PaymentStatus,
+        salesChannel: (sale.salesChannel ?? "walk-in") as SaleChannel,
+        customerName: sale.customerName ?? undefined,
+        notes: sale.notes ?? undefined,
+      }));
+
+    const unique = new Map<string, Suggestion>();
+    for (const suggestion of [...fromMemory, ...fromHistory]) {
+      const key = normalizeText(suggestion.itemName);
+      if (!unique.has(key)) {
+        unique.set(key, suggestion);
+      }
+    }
+
+    return Array.from(unique.values()).slice(0, 6);
+  }, [frequentItems, itemName, salesHistory]);
+
+  const topFrequentItems = useMemo(
+    () => frequentItems.slice(0, 6),
+    [frequentItems],
+  );
+
+  useEffect(() => {
+    if (!itemName.trim() || priceManuallyEdited) return;
+
+    const lastPrice = findLastPrice(itemName, frequentItems, salesHistory);
+    if (lastPrice === null) return;
+    setUnitPrice(String(lastPrice));
+  }, [frequentItems, itemName, priceManuallyEdited, salesHistory]);
+
+  function clearSaleQuery() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("sale");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (!nextOpen && searchParams.get("sale") === "new") {
+      clearSaleQuery();
+    }
+  }
 
   function resetForm() {
     setItemType("product");
@@ -61,8 +214,77 @@ export function NewSaleSheet() {
     setSalesChannel("walk-in");
     setCustomerName("");
     setNotes("");
-    setSoldAt("");
+    setSoldAt(getNowDatetimeLocalValue());
+    setPriceManuallyEdited(false);
     setError("");
+  }
+
+  function applySuggestion(suggestion: Suggestion | FrequentItem) {
+    setItemType(suggestion.itemType);
+    setItemName(suggestion.itemName);
+    setCategory(suggestion.category || "");
+    setSubcategory(suggestion.subcategory || "");
+    setUnitPrice(String(suggestion.unitPrice));
+    setPaymentStatus(suggestion.paymentStatus);
+    setSalesChannel(suggestion.salesChannel);
+    setCustomerName(suggestion.customerName || "");
+    setNotes(suggestion.notes || "");
+    setPriceManuallyEdited(false);
+  }
+
+  function handleSaveCurrentItemPreset() {
+    if (!itemName.trim()) {
+      toast.error("Enter an item name first.");
+      return;
+    }
+
+    if (!unitPrice || Number(unitPrice) <= 0) {
+      toast.error("Enter a unit price greater than 0.");
+      return;
+    }
+
+    const next = upsertFrequentItem({
+      itemType,
+      itemName: itemName.trim(),
+      category: category.trim() || undefined,
+      subcategory: subcategory.trim() || undefined,
+      unitPrice: Number(unitPrice),
+      paymentStatus,
+      salesChannel,
+      customerName: customerName.trim() || undefined,
+      notes: notes.trim() || undefined,
+    });
+
+    setFrequentItems(next);
+    toast.success("Saved to frequent items.");
+  }
+
+  function handleRepeatLastSale() {
+    if (!salesHistory.length) {
+      toast.error("No previous sale found to repeat.");
+      return;
+    }
+
+    const lastSale = [...salesHistory].sort(
+      (a, b) => new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime(),
+    )[0];
+
+    applySuggestion({
+      source: "history",
+      itemType: lastSale.itemType,
+      itemName: lastSale.itemName,
+      category: lastSale.category ?? undefined,
+      subcategory: lastSale.subcategory ?? undefined,
+      unitPrice: Number(lastSale.unitPrice ?? lastSale.totalAmount),
+      paymentStatus: lastSale.paymentStatus as PaymentStatus,
+      salesChannel: (lastSale.salesChannel ?? "walk-in") as SaleChannel,
+      customerName: lastSale.customerName ?? undefined,
+      notes: lastSale.notes ?? undefined,
+    });
+
+    setQuantity(String(lastSale.quantity ?? 1));
+    setSoldAt(getNowDatetimeLocalValue());
+    toast.success("Repeated last sale details.");
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -102,8 +324,22 @@ export function NewSaleSheet() {
         soldAt: soldAt ? new Date(soldAt).toISOString() : undefined,
       });
 
+      const nextFrequent = upsertFrequentItem({
+        itemType,
+        itemName: itemName.trim(),
+        category: category.trim() || undefined,
+        subcategory: subcategory.trim() || undefined,
+        unitPrice: Number(unitPrice),
+        paymentStatus,
+        salesChannel,
+        customerName: customerName.trim() || undefined,
+        notes: notes.trim() || undefined,
+      });
+
+      setFrequentItems(nextFrequent);
+
       toast.success("Sale created successfully.");
-      setOpen(false);
+      handleOpenChange(false);
       resetForm();
       router.refresh();
     } catch (err) {
@@ -117,10 +353,12 @@ export function NewSaleSheet() {
   }
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button>New Sale</Button>
-      </SheetTrigger>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      {!hideTrigger ? (
+        <SheetTrigger asChild>
+          {trigger ?? <Button>New Sale</Button>}
+        </SheetTrigger>
+      ) : null}
 
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
@@ -131,6 +369,20 @@ export function NewSaleSheet() {
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleRepeatLastSale}
+            >
+              Repeat Last Sale
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Defaults: status is paid, channel is walk-in, sold at is now.
+            </p>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Item Type</label>
@@ -177,6 +429,54 @@ export function NewSaleSheet() {
               onChange={(e) => setItemName(e.target.value)}
               placeholder="e.g. Chocolate Cake"
             />
+            {suggestions.length ? (
+              <div className="rounded-md border bg-muted/30 p-2">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Quick Add suggestions
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {suggestions.map((suggestion) => (
+                    <Button
+                      key={`${suggestion.source}-${suggestion.itemName}`}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => applySuggestion(suggestion)}
+                    >
+                      {suggestion.itemName} ({formatCurrency(suggestion.unitPrice)})
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {topFrequentItems.length ? (
+              <div className="rounded-md border bg-muted/30 p-2">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Frequent items
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {topFrequentItems.map((item) => (
+                    <Button
+                      key={`frequent-${item.itemName}`}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => applySuggestion(item)}
+                    >
+                      {item.itemName} ({item.useCount})
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSaveCurrentItemPreset}
+            >
+              Save current item to frequent list
+            </Button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -217,7 +517,10 @@ export function NewSaleSheet() {
                 min="0"
                 step="0.01"
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
+                onChange={(e) => {
+                  setPriceManuallyEdited(true);
+                  setUnitPrice(e.target.value);
+                }}
                 placeholder="0.00"
               />
             </div>
@@ -299,7 +602,7 @@ export function NewSaleSheet() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
@@ -307,5 +610,13 @@ export function NewSaleSheet() {
         </form>
       </SheetContent>
     </Sheet>
+  );
+}
+
+export function NewSaleSheet(props: NewSaleSheetProps) {
+  return (
+    <Suspense fallback={null}>
+      <NewSaleSheetInner {...props} />
+    </Suspense>
   );
 }

@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Sale } from "@/lib/types/sale";
-import { NewSaleSheet } from "./new-sale-sheet";
+import type { Sale } from "@/lib/api";
+import { ExportActions } from "@/components/shared/export-actions";
 import { SalesFilters } from "./sales-filters";
 import { SalesTable } from "./sales-table";
 
@@ -11,6 +13,22 @@ type SalesPageContentProps = {
 };
 
 export function SalesPageContent({ sales }: SalesPageContentProps) {
+  const exportRows = sales.map((sale) => ({
+    id: sale.id,
+    itemType: sale.itemType,
+    itemName: sale.itemName,
+    category: sale.category ?? "",
+    subcategory: sale.subcategory ?? "",
+    quantity: sale.quantity ?? "",
+    unitPrice: Number(sale.unitPrice ?? 0),
+    totalAmount: Number(sale.totalAmount),
+    paymentStatus: sale.paymentStatus,
+    salesChannel: sale.salesChannel ?? "",
+    customerName: sale.customerName ?? "",
+    notes: sale.notes ?? "",
+    soldAt: new Date(sale.soldAt).toISOString(),
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -21,7 +39,16 @@ export function SalesPageContent({ sales }: SalesPageContentProps) {
           </p>
         </div>
 
-        <NewSaleSheet />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportActions
+            rows={exportRows}
+            fileBaseName="sales-records"
+            pdfTitle="Sales Records"
+          />
+          <Button asChild>
+            <Link href="/sales?sale=new">New Sale</Link>
+          </Button>
+        </div>
       </div>
 
       <Card className="rounded-2xl">

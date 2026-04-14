@@ -8,17 +8,44 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <PageIntro
           title="Settings"
-          description="Manage business preferences and account options."
+          description="App and business preferences."
         />
 
-        <Card className="rounded-2xl">
-          <CardHeader>
-            <CardTitle>Coming soon</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            This page will hold business info, currency preferences, categories, and user settings.
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 xl:grid-cols-2">
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Business Preferences</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <div className="rounded-xl border p-4">
+                Business name and profile settings will go here.
+              </div>
+              <div className="rounded-xl border p-4">
+                Default currency and sales preferences will go here.
+              </div>
+              <div className="rounded-xl border p-4">
+                Category management can live here later.
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>App Preferences</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <div className="rounded-xl border p-4">
+                Notifications and reminders will go here.
+              </div>
+              <div className="rounded-xl border p-4">
+                User account and access settings will go here.
+              </div>
+              <div className="rounded-xl border p-4">
+                Export and backup preferences will go here.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </AppShell>
   );

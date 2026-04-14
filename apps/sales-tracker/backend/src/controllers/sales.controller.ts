@@ -3,6 +3,7 @@ import {
   createSale,
   deleteSale,
   getAllSales,
+  getSaleById,
   getSalesSummary,
   updateSale,
 } from "../services/sales.service";
@@ -42,6 +43,22 @@ export async function fetchSales(req: Request, res: Response) {
   } catch (error) {
     console.error("Error fetching sales:", error);
     res.status(500).json({ error: "Failed to fetch sales" });
+  }
+}
+
+export async function fetchSaleById(req: Request<SaleParams>, res: Response) {
+  try {
+    const { id } = req.params;
+    const sale = await getSaleById(id);
+
+    if (!sale) {
+      return res.status(404).json({ error: "Sale not found" });
+    }
+
+    res.json(sale);
+  } catch (error) {
+    console.error("Error fetching sale:", error);
+    res.status(500).json({ error: "Failed to fetch sale" });
   }
 }
 
